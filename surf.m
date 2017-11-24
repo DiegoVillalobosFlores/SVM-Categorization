@@ -2,22 +2,16 @@ clear;
 close all;
 
 files = dir('monarch_open/*.jpg');
+filesClosed = dir('monarch_closed/*.jpg');
+
 features = 6;
 
-
-%Acomodar esta parte
-imagen = imread('mno001.jpg');
-imagen = rgb2gray(imagen);
-imagenpoints = detectSURFFeatures(imagen);
-strongest1 = imagenpoints.selectStrongest(features); 
-[featuresSURF, valid_pointsSURF] = extractFeatures(imagen, strongest1);
-imagen=strongest1.Location;
-%
-
 n = length(files);
+m = length(filesClosed);
+
 images = files(1:n,:);
 
-points = zeros(0:n);
+coordenadas = zeros(n+m,features*2);
 
 for cont=1:n
     name = strcat('monarch_open/', images(cont).name);
@@ -28,38 +22,16 @@ for cont=1:n
     strongest1 = points1.selectStrongest(features); 
     [featuresSURF, valid_pointsSURF] = extractFeatures(I, strongest1);
     a=strongest1.Location;
-    a = round(a);
-    a = sort(a,'ascend');
-     %a = minmax(a);
+    a = round(a/100);
+    a(1:features,2) = sort(a(1:features,2));
+    %a = sort(a);
     
-    points(cont).x = a(1:features,1);
-    points(cont).y = a(1:features,2);
+    coordenadas(cont,1:features) = a(1:features,1);
+    coordenadas(cont,features+1:features*2) = a(1:features,2);
     
-%     figure(1);
-%     subplot(1,2,1)
-%     imshow(I); hold on; plot(strongest1);
 end
 
-points = points';
-
-cont2 = 1;
-for cont=1:n
-        for contF=1:features
-            coordenadas(cont,contF) = points(cont).x(contF); 
-            coordenadas(cont,contF+features) = points(cont).y(contF); 
-            cont2 = cont2 +1;
-        end
-end
-
-
-files = dir('monarch_closed/*.jpg');
-
-m = length(files);
-images = files(1:m,:);
-
-features = 6;
-
-points2 = zeros(0:m);
+images = filesClosed(1:m,:);
 
 for cont=1:m
     name = strcat('monarch_closed/', images(cont).name);
@@ -69,26 +41,15 @@ for cont=1:m
     points1 = detectSURFFeatures(I);
     strongest1 = points1.selectStrongest(features); 
     [featuresSURF, valid_pointsSURF] = extractFeatures(I, strongest1);
-     a=strongest1.Location;
-     a = round(a);
-     %a = minmax(a);
-     a = sort(a,'descend');
-    
-    points2(cont).x = a(1:features,1);
-    points2(cont).y = a(1:features,2);
-    
-%     figure(1);
-%     subplot(1,2,1)
-%     imshow(I); hold on; plot(strongest1);
-end
+    a=strongest1.Location;
+    a = round(a/100);
+    a(1:features,2) = sort(a(1:features,2));
+    %a = sort(a,'descend');
 
-cont2 = 1;
-for cont=1:m
-        for contF=1:features
-            coordenadas(cont+n,contF) = points2(cont).x(contF); 
-            coordenadas(cont+n,contF+features) = points2(cont).y(contF); 
-            cont2 = cont2 +1;
-        end
+    
+    coordenadas(cont+n,1:features) = a(1:features,1);
+    coordenadas(cont+n,features+1:features*2) = a(1:features,2);
+   
 end
 
 salida(1:n,1) = 1;
@@ -105,20 +66,46 @@ A = net(coordenadas);
 % figure();
 % plot(1:length(salida),coordenadas,'o',1:length(salida),A,'*');
 
-coordenadas2 = coordenadas(1,1);
+files = dir('todas/*.jpg');
 
-img(1,1:features) = imagen(1:features,1);
-img(1,features+1:features*2) = imagen(1:features,2);
+k = length(files);
+imagen = files(1:k,:);
 
-img = round(img);
-x = net(img');
+features = 6;
+
+for cont=1:k
+    name = strcat('todas/', imagen(cont).name);
+    im = imread(name);
+    I=rgb2gray(im);
+
+    points3 = detectSURFFeatures(I);
+    strongest1 = points3.selectStrongest(features); 
+    [featuresSURF, valid_pointsSURF] = extractFeatures(I, strongest1);
+    b=strongest1.Location;
+    b = round(b);
+    %a = minmax(a);
+    %a = sort(a);
+
+    coordenadas2(cont,1:features) = b(1:features,1);
+    coordenadas2(cont,features+1:features*2) = b(1:features,2);
+end
+
+x = net(coordenadas2');
 x = x';
-res = round(x);
+x = round(x);
 
+d(1:m,1) = 0;
+d(m+1:m+n,1) = 1;
 
+promedio = 0;
 
-% A = net(b);
-% salida_1 = sim(net,b);
+for i=1:n+m
+    if d(i,1) == x(i,1)
+        promedio = promedio+1;
+    end
+end
+
+promedio = round((promedio/(n+m))*100);
 
 %subplot(1,2,2)
 %imshow(I2); hold on; plot(strongest2);
